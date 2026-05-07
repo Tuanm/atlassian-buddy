@@ -119,7 +119,7 @@ Restart OpenCode to load the MCP server.
 | `search_pages` | `query`, `spaceKey?`, `limit?`, `cursor?` | Search pages by keyword |
 | `get_page` | `pageId` | Get page by ID with body and attachments |
 | `get_page_children` | `pageId`, `limit?`, `cursor?` | Get child pages |
-| `download_confluence_attachment` | `attachmentId` | Download attachment as base64 |
+| `download_confluence_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ### Jira
 
@@ -130,7 +130,7 @@ Restart OpenCode to load the MCP server.
 | `search_issues` | `jql`, `limit?`, `cursor?` | Search issues using JQL |
 | `get_issue` | `issueKey`, `includeComments?` | Get issue with comments and attachments |
 | `get_issue_comments` | `issueKey` | Get issue comments |
-| `download_jira_attachment` | `attachmentId` | Download attachment as base64 |
+| `download_jira_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ## Usage Examples
 
@@ -163,9 +163,12 @@ await tool("search_issues", {
 // Get a specific issue with comments
 await tool("get_issue", { issueKey: "TEAM-123", includeComments: true })
 
-// Download an attachment
-const attachment = await tool("download_jira_attachment", { attachmentId: "10001" })
-// Returns: { filename: "screenshot.png", mimeType: "image/png", data: "base64..." }
+// Download an attachment to local path
+const attachment = await tool("download_jira_attachment", { 
+  attachmentId: "10001", 
+  downloadPath: "/tmp/screenshot.png" 
+})
+// Returns: { filename: "screenshot.png", mimeType: "image/png", path: "/tmp/screenshot.png" }
 ```
 
 ## Development

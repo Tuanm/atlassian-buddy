@@ -32,11 +32,10 @@ export interface AttachmentMeta {
   mimeType: string;
 }
 
-// Download result
 export interface DownloadResult {
   filename: string;
   mimeType: string;
-  data: string; // base64
+  path: string;
 }
 
 // Space summary

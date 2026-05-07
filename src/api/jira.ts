@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs';
 import type {
   JiraAttachment,
   JiraComment,
@@ -5,7 +6,7 @@ import type {
   JiraPaginatedResponse,
   JiraProject,
 } from '../types/jira';
-import type { AttachmentMeta, PaginatedResult } from '../types/mcp';
+import type { AttachmentMeta, DownloadResult, PaginatedResult } from '../types/mcp';
 import { AtlassianClient } from './client';
 
 const MAX_RESULTS = 100;
@@ -76,15 +77,19 @@ export class JiraClient extends AtlassianClient {
     return response.comments || [];
   }
 
-  async downloadAttachment(
-    attachmentId: string
-  ): Promise<{ filename: string; mimeType: string; data: string }> {
-    const { data, contentType } = await this.fetchBinary(`/rest/api/3/attachment/${attachmentId}`);
-    return {
-      filename: 'unknown',
-      mimeType: contentType,
-      data: data.toString('base64'),
-    };
+  async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
+    const { data, contentType, contentDisposition } = await this.fetchBinary(
+      `/rest/api/3/attachment/${attachmentId}`
+    );
+    const filename = this.extractFilename(contentDisposition) || 'unknown';
+    writeFileSync(downloadPath, data);
+    return { filename, mimeType: contentType, path: downloadPath };
+  }
+
+  private extractFilename(contentDisposition?: string): string | undefined {
+    if (!contentDisposition) return undefined;
+    const match = contentDisposition.match(/filename[^;=\n]*=(?:(\\?['"])(.*?)\1|([^;\n]*))/i);
+    return match?.[2] || match?.[3];
   }
 }
 

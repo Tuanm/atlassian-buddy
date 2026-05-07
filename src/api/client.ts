@@ -44,7 +44,7 @@ export abstract class AtlassianClient {
   protected async fetchBinary(
     path: string,
     retries = 0
-  ): Promise<{ data: Buffer; contentType: string }> {
+  ): Promise<{ data: Buffer; contentType: string; contentDisposition?: string }> {
     const url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
     const response = await fetch(url, {
@@ -67,8 +67,9 @@ export abstract class AtlassianClient {
     }
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    const contentDisposition = response.headers.get('content-disposition');
     const arrayBuffer = await response.arrayBuffer();
-    return { data: Buffer.from(arrayBuffer), contentType };
+    return { data: Buffer.from(arrayBuffer), contentType, contentDisposition };
   }
 
   protected sleep(ms: number): Promise<void> {

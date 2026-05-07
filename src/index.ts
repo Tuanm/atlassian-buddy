@@ -19,142 +19,175 @@ const jira = new JiraClient(JIRA_BASE_URL, ATLASSIAN_API_TOKEN);
 const tools = [
   {
     name: 'list_spaces',
-    description: 'List all Confluence spaces',
+    description:
+      'List all Confluence spaces the user has access to. Use this to discover available spaces before searching for pages.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        limit: { type: 'number', description: 'Max results (default 25)', default: 25 },
-        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Max results per page (default 25, max 100)' },
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
       },
     },
   },
   {
     name: 'get_space',
-    description: 'Get a Confluence space by key',
+    description:
+      'Get details of a specific Confluence space by its key (e.g., "TEAM", "BANCSTAC"). Returns space metadata and permissions.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        spaceKey: { type: 'string', description: 'Space key (e.g., BANCSTAC)' },
+        spaceKey: { type: 'string', description: 'Space key (e.g., BANCSTAC, TEAM)' },
       },
       required: ['spaceKey'],
     },
   },
   {
     name: 'search_pages',
-    description: 'Search Confluence pages by keyword',
+    description:
+      'Search Confluence pages by text query within a space or across all spaces. Returns matching pages with their IDs and titles.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        query: { type: 'string', description: 'Search query' },
-        spaceKey: { type: 'string', description: 'Filter by space key' },
+        query: { type: 'string', description: 'Text to search for in page titles and content' },
+        spaceKey: { type: 'string', description: 'Restrict search to a specific space key' },
         limit: { type: 'number', description: 'Max results (default 25)' },
-        cursor: { type: 'string', description: 'Pagination cursor' },
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
       },
       required: ['query'],
     },
   },
   {
     name: 'get_page',
-    description: 'Get a Confluence page by ID with content and attachments',
+    description:
+      'Get full details of a Confluence page including its content body, metadata, version, and list of attachments. Use attachment IDs with download tools to save files.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        pageId: { type: 'string', description: 'Page ID' },
+        pageId: { type: 'string', description: 'Page ID (numeric or UUID string)' },
       },
       required: ['pageId'],
     },
   },
   {
     name: 'get_page_children',
-    description: 'Get child pages of a Confluence page',
+    description:
+      'Get all direct child pages of a Confluence page. Use to navigate page hierarchies or build a table of contents.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         pageId: { type: 'string', description: 'Parent page ID' },
-        limit: { type: 'number', description: 'Max results (default 25)' },
-        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Max results per page (default 25)' },
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
       },
       required: ['pageId'],
     },
   },
   {
     name: 'list_projects',
-    description: 'List all Jira projects',
+    description:
+      'List all Jira projects the user has access to. Each project contains issues and has a unique key (e.g., "TEAM", "BANCSTAC").',
     inputSchema: {
       type: 'object' as const,
       properties: {
         limit: { type: 'number', description: 'Max results (default 100)' },
-        cursor: { type: 'string', description: 'Pagination cursor' },
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
       },
     },
   },
   {
     name: 'get_project',
-    description: 'Get a Jira project by key',
+    description:
+      'Get details of a specific Jira project by its key. Returns project info, issue types, and workflow statuses.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        projectKey: { type: 'string', description: 'Project key (e.g., BANCSTAC)' },
+        projectKey: { type: 'string', description: 'Project key (e.g., BANCSTAC, TEAM)' },
       },
       required: ['projectKey'],
     },
   },
   {
     name: 'search_issues',
-    description: 'Search Jira issues using JQL',
+    description:
+      'Search Jira issues using JQL (Jira Query Language). Supports filtering by project, status, assignee, labels, dates, and full-text search.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        jql: { type: 'string', description: 'JQL query (e.g., project=BANCSTAC)' },
+        jql: {
+          type: 'string',
+          description:
+            'JQL query (e.g., project=TEAM AND status="In Progress" ORDER BY created DESC)',
+        },
         limit: { type: 'number', description: 'Max results (default 100)' },
-        cursor: { type: 'string', description: 'Pagination cursor (startAt number)' },
+        cursor: {
+          type: 'string',
+          description: 'Pagination cursor (startAt number) from previous response',
+        },
       },
       required: ['jql'],
     },
   },
   {
     name: 'get_issue',
-    description: 'Get a Jira issue by key with comments and attachments',
+    description:
+      'Get full details of a Jira issue including description, status, assignee, priority, comments, and attachments. Use attachment IDs with download tools to save files.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
-        includeComments: { type: 'boolean', description: 'Include comments (default true)' },
+        includeComments: {
+          type: 'boolean',
+          description: 'Include comments in response (default true)',
+        },
       },
       required: ['issueKey'],
     },
   },
   {
     name: 'get_issue_comments',
-    description: 'Get comments for a Jira issue',
+    description:
+      'Get all comments on a Jira issue. Returns author, body, and creation timestamp for each comment.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        issueKey: { type: 'string', description: 'Issue key' },
+        issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
       },
       required: ['issueKey'],
     },
   },
   {
     name: 'download_confluence_attachment',
-    description: 'Download a Confluence attachment as base64',
+    description:
+      'Download a Confluence attachment and save it to a local file path. Returns metadata including filename, MIME type, and the path where the file was saved.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        attachmentId: { type: 'string', description: 'Attachment ID' },
+        attachmentId: { type: 'string', description: 'Attachment ID (found in get_page response)' },
+        downloadPath: {
+          type: 'string',
+          description: 'Destination file path on local machine (e.g., /tmp/document.pdf)',
+        },
       },
-      required: ['attachmentId'],
+      required: ['attachmentId', 'downloadPath'],
     },
   },
   {
     name: 'download_jira_attachment',
-    description: 'Download a Jira attachment as base64',
+    description:
+      'Download a Jira attachment and save it to a local file path. Returns metadata including filename, MIME type, and the path where the file was saved.',
     inputSchema: {
       type: 'object' as const,
       properties: {
-        attachmentId: { type: 'string', description: 'Attachment ID' },
+        attachmentId: {
+          type: 'string',
+          description: 'Attachment ID (found in get_issue response)',
+        },
+        downloadPath: {
+          type: 'string',
+          description: 'Destination file path on local machine (e.g., /tmp/screenshot.png)',
+        },
       },
-      required: ['attachmentId'],
+      required: ['attachmentId', 'downloadPath'],
     },
   },
 ];
@@ -323,14 +356,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'download_confluence_attachment': {
-        const result = await confluence.downloadAttachment(args.attachmentId as string);
+        const result = await confluence.downloadAttachment(
+          args.attachmentId as string,
+          args.downloadPath as string | undefined
+        );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
       }
 
       case 'download_jira_attachment': {
-        const result = await jira.downloadAttachment(args.attachmentId as string);
+        const result = await jira.downloadAttachment(
+          args.attachmentId as string,
+          args.downloadPath as string | undefined
+        );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };

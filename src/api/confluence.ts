@@ -1,10 +1,11 @@
+import { writeFileSync } from 'fs';
 import type {
   ConfluenceAttachment,
   ConfluencePage,
   ConfluenceSpace,
   PaginatedResponse,
 } from '../types/confluence';
-import type { AttachmentMeta, PaginatedResult } from '../types/mcp';
+import type { AttachmentMeta, DownloadResult, PaginatedResult } from '../types/mcp';
 import { AtlassianClient } from './client';
 
 const PAGE_LIMIT = 25;
@@ -105,16 +106,18 @@ export class ConfluenceClient extends AtlassianClient {
     return attachments;
   }
 
-  async downloadAttachment(
-    attachmentId: string
-  ): Promise<{ filename: string; mimeType: string; data: string }> {
-    const { data, contentType } = await this.fetchBinary(
+  async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
+    const { data, contentType, contentDisposition } = await this.fetchBinary(
       `/wiki/api/v2/attachments/${attachmentId}/download`
     );
-    return {
-      filename: 'unknown',
-      mimeType: contentType,
-      data: data.toString('base64'),
-    };
+    const filename = this.extractFilename(contentDisposition) || 'unknown';
+    writeFileSync(downloadPath, data);
+    return { filename, mimeType: contentType, path: downloadPath };
+  }
+
+  private extractFilename(contentDisposition?: string): string | undefined {
+    if (!contentDisposition) return undefined;
+    const match = contentDisposition.match(/filename[^;=\n]*=(?:(\\?['"])(.*?)\1|([^;\n]*))/i);
+    return match?.[2] || match?.[3];
   }
 }
