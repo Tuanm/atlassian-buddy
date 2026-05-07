@@ -116,9 +116,9 @@ Restart OpenCode to load the MCP server.
 |------|-----------|-------------|
 | `list_confluence_spaces` | `limit?`, `cursor?` | List all Confluence spaces |
 | `get_confluence_space` | `spaceKey` | Get Confluence space by key |
-| `search_pages` | `query`, `spaceKey?`, `limit?`, `cursor?` | Search pages by keyword |
-| `get_page` | `pageId` | Get page by ID with body and attachments |
-| `get_page_children` | `pageId`, `limit?`, `cursor?` | Get child pages |
+| `search_confluence_pages` | `query`, `spaceKey?`, `limit?`, `cursor?` | Search pages by keyword |
+| `get_confluence_page` | `pageId` | Get page by ID with body and attachments |
+| `get_confluence_page_children` | `pageId`, `limit?`, `cursor?` | Get child pages |
 | `download_confluence_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ### Jira
@@ -127,9 +127,9 @@ Restart OpenCode to load the MCP server.
 |------|-----------|-------------|
 | `list_jira_projects` | `limit?`, `cursor?` | List all Jira projects |
 | `get_jira_project` | `projectKey` | Get Jira project by key |
-| `search_issues` | `jql`, `limit?`, `cursor?` | Search issues using JQL |
-| `get_issue` | `issueKey`, `includeComments?` | Get issue with comments and attachments |
-| `get_issue_comments` | `issueKey` | Get issue comments |
+| `search_jira_issues` | `query?`, `jql?`, `limit?`, `cursor?` | Search issues using JQL or fuzzy search |
+| `get_jira_issue` | `issueKey`, `includeComments?` | Get issue with comments and attachments |
+| `get_jira_issue_comments` | `issueKey` | Get issue comments |
 | `download_jira_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ## Usage Examples
@@ -139,29 +139,29 @@ Restart OpenCode to load the MCP server.
 await tool("list_confluence_spaces", { limit: 25 })
 
 // Search pages in a specific space
-await tool("search_pages", {
+await tool("search_confluence_pages", {
   query: "architecture",
   spaceKey: "TEAM",
   limit: 10
 })
 
 // Get a specific page with attachments
-await tool("get_page", { pageId: "123456789" })
+await tool("get_confluence_page", { pageId: "123456789" })
 
 // Get page children
-await tool("get_page_children", { pageId: "123456789" })
+await tool("get_confluence_page_children", { pageId: "123456789" })
 
 // List projects
 await tool("list_jira_projects")
 
 // Search issues with JQL
-await tool("search_issues", {
+await tool("search_jira_issues", {
   jql: "project=TEAM AND assignee=currentUser() AND status='In Progress'",
   limit: 50
 })
 
 // Get a specific issue with comments
-await tool("get_issue", { issueKey: "TEAM-123", includeComments: true })
+await tool("get_jira_issue", { issueKey: "TEAM-123", includeComments: true })
 
 // Download an attachment to local path
 const attachment = await tool("download_jira_attachment", { 

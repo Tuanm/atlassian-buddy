@@ -42,7 +42,7 @@ const tools = [
     },
   },
   {
-    name: 'search_pages',
+    name: 'search_confluence_pages',
     description:
       'Search Confluence pages by text query within a space or across all spaces. Returns matching pages with their IDs and titles.',
     inputSchema: {
@@ -57,7 +57,7 @@ const tools = [
     },
   },
   {
-    name: 'get_page',
+    name: 'get_confluence_page',
     description:
       'Get full details of a Confluence page including its content body, metadata, version, and list of attachments. Use attachment IDs with download tools to save files.',
     inputSchema: {
@@ -69,7 +69,7 @@ const tools = [
     },
   },
   {
-    name: 'get_page_children',
+    name: 'get_confluence_page_children',
     description:
       'Get all direct child pages of a Confluence page. Use to navigate page hierarchies or build a table of contents.',
     inputSchema: {
@@ -107,7 +107,7 @@ const tools = [
     },
   },
   {
-    name: 'search_issues',
+    name: 'search_jira_issues',
     description:
       'Search Jira issues using JQL or free-text fuzzy search. Use `query` for simple fuzzy text search across summary, description, and environment fields. Use `jql` for advanced filtering with full JQL syntax.',
     inputSchema: {
@@ -132,7 +132,7 @@ const tools = [
     },
   },
   {
-    name: 'get_issue',
+    name: 'get_jira_issue',
     description:
       'Get full details of a Jira issue including description, status, assignee, priority, comments, and attachments. Use attachment IDs with download tools to save files.',
     inputSchema: {
@@ -148,7 +148,7 @@ const tools = [
     },
   },
   {
-    name: 'get_issue_comments',
+    name: 'get_jira_issue_comments',
     description:
       'Get all comments on a Jira issue. Returns author, body, and creation timestamp for each comment.',
     inputSchema: {
@@ -231,7 +231,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'search_pages': {
+      case 'search_confluence_pages': {
         const result = await confluence.searchPages(args.query as string, args.spaceKey as string, {
           limit: args.limit as number,
           cursor: args.cursor as string,
@@ -241,7 +241,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_page': {
+      case 'get_confluence_page': {
         const page = await confluence.getPage(args.pageId as string);
         const attachments = await confluence.getAttachments(page.id);
         return {
@@ -262,7 +262,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_page_children': {
+      case 'get_confluence_page_children': {
         const result = await confluence.getPageChildren(args.pageId as string, {
           limit: args.limit as number,
           cursor: args.cursor as string,
@@ -289,7 +289,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'search_issues': {
+      case 'search_jira_issues': {
         const result = await jira.searchIssues(args.query as string | undefined, args.jql as string | undefined, {
           limit: args.limit as number,
           cursor: args.cursor as string,
@@ -299,7 +299,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_issue': {
+      case 'get_jira_issue': {
         const issue = await jira.getIssue(args.issueKey as string);
         const includeComments = args.includeComments !== false;
         const comments = includeComments ? await jira.getIssueComments(issue.key) : [];
@@ -340,7 +340,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_issue_comments': {
+      case 'get_jira_issue_comments': {
         const comments = await jira.getIssueComments(args.issueKey as string);
         return {
           content: [
