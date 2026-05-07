@@ -78,10 +78,11 @@ export class JiraClient extends AtlassianClient {
   }
 
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
-    const { data, contentType, contentDisposition } = await this.fetchBinary(
+    const attachment = await this.fetch<{ content: string; filename: string; mimeType: string }>(
       `/rest/api/3/attachment/${attachmentId}`
     );
-    const filename = this.extractFilename(contentDisposition) || 'unknown';
+    const { data, contentType, contentDisposition } = await this.fetchBinary(attachment.content);
+    const filename = this.extractFilename(contentDisposition) || attachment.filename;
     writeFileSync(downloadPath, data);
     return { filename, mimeType: contentType, path: downloadPath };
   }
