@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import type {
   ConfluenceAttachment,
   ConfluencePage,
+  ConfluencePageTree,
   ConfluencePageVersion,
   ConfluencePageVersionDetail,
   ConfluenceSpace,
@@ -69,6 +70,41 @@ export class ConfluenceClient extends AtlassianClient {
 
   async getPage(pageId: string): Promise<ConfluencePage> {
     return this.fetch<ConfluencePage>(`/wiki/api/v2/pages/${pageId}?body-format=storage`);
+  }
+
+  async getPageTree(pageId: string, depth = 2): Promise<ConfluencePageTree> {
+    const page = await this.getPage(pageId);
+    const tree: ConfluencePageTree = {
+      id: page.id,
+      title: page.title,
+      children: [],
+    };
+
+    if (depth > 0) {
+      const children = await this.getAllPageChildren(pageId);
+      tree.children = await Promise.all(
+        children.map((child) => this.getPageTree(child.id, depth - 1))
+      );
+    }
+
+    return tree;
+  }
+
+  private async getAllPageChildren(pageId: string): Promise<ConfluencePage[]> {
+    const children: ConfluencePage[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const path = cursor
+        ? `/wiki/api/v2/pages/${pageId}/children?limit=${PAGE_LIMIT}&cursor=${cursor}`
+        : `/wiki/api/v2/pages/${pageId}/children?limit=${PAGE_LIMIT}`;
+
+      const response = await this.fetch<PaginatedResponse<ConfluencePage>>(path);
+      children.push(...response.results);
+      cursor = this.extractCursor(response._links?.next);
+    } while (cursor);
+
+    return children;
   }
 
   async getPageChildren(

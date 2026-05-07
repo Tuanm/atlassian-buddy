@@ -89,3 +89,9 @@ export interface PaginatedResult<T> {
   nextCursor?: string;
   hasMore: boolean;
 }
+
+export interface ConfluencePageTree {
+  id: string;
+  title: string;
+  children: ConfluencePageTree[];
+}

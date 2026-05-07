@@ -11,6 +11,112 @@ import {
   writeText,
 } from './utils/storage';
 
+interface JqlQueryOptions {
+  project?: string;
+  issueTypes?: string[];
+  statuses?: string[];
+  assignees?: string[];
+  reporters?: string[];
+  priorities?: string[];
+  labels?: string[];
+  components?: string[];
+  fixVersions?: string[];
+  createdAfter?: string;
+  createdBefore?: string;
+  updatedAfter?: string;
+  updatedBefore?: string;
+  textSearch?: string;
+  textFields?: ('summary' | 'description' | 'environment')[];
+  orderBy?: 'created' | 'updated' | 'priority' | 'status' | 'summary';
+  orderDirection?: 'ASC' | 'DESC';
+}
+
+function buildJqlQuery(options: JqlQueryOptions): string {
+  const conditions: string[] = [];
+
+  if (options.project) {
+    conditions.push(`project = ${options.project}`);
+  }
+
+  if (options.issueTypes?.length) {
+    const types = options.issueTypes.map((t) => `"${t}"`).join(', ');
+    conditions.push(`type IN (${types})`);
+  }
+
+  if (options.statuses?.length) {
+    const statuses = options.statuses.map((s) => `"${s}"`).join(', ');
+    conditions.push(`status IN (${statuses})`);
+  }
+
+  if (options.assignees?.length) {
+    const assignees = options.assignees.map((a) => `"${a}"`).join(', ');
+    conditions.push(`assignee IN (${assignees})`);
+  }
+
+  if (options.reporters?.length) {
+    const reporters = options.reporters.map((r) => `"${r}"`).join(', ');
+    conditions.push(`reporter IN (${reporters})`);
+  }
+
+  if (options.priorities?.length) {
+    const priorities = options.priorities.map((p) => `"${p}"`).join(', ');
+    conditions.push(`priority IN (${priorities})`);
+  }
+
+  if (options.labels?.length) {
+    const labels = options.labels.map((l) => `"${l}"`).join(', ');
+    conditions.push(`labels IN (${labels})`);
+  }
+
+  if (options.components?.length) {
+    const components = options.components.map((c) => `"${c}"`).join(', ');
+    conditions.push(`component IN (${components})`);
+  }
+
+  if (options.fixVersions?.length) {
+    const versions = options.fixVersions.map((v) => `"${v}"`).join(', ');
+    conditions.push(`fixVersion IN (${versions})`);
+  }
+
+  if (options.createdAfter) {
+    conditions.push(`created >= ${options.createdAfter}`);
+  }
+
+  if (options.createdBefore) {
+    conditions.push(`created <= ${options.createdBefore}`);
+  }
+
+  if (options.updatedAfter) {
+    conditions.push(`updated >= ${options.updatedAfter}`);
+  }
+
+  if (options.updatedBefore) {
+    conditions.push(`updated <= ${options.updatedBefore}`);
+  }
+
+  if (options.textSearch) {
+    const fields = options.textFields || ['summary', 'description'];
+    const textConditions = fields.map((f) => `${f} ~ "${options.textSearch}"`);
+    conditions.push(`(${textConditions.join(' OR ')})`);
+  }
+
+  let jql = conditions.length > 0 ? conditions.join(' AND ') : '';
+
+  if (options.orderBy) {
+    const orderField = {
+      created: 'created',
+      updated: 'updated',
+      priority: 'priority',
+      status: 'status',
+      summary: 'summary',
+    }[options.orderBy];
+    const direction = options.orderDirection === 'ASC' ? 'ASC' : 'DESC';
+    jql += `${jql ? ' ORDER BY ' : ''}${orderField} ${direction}`;
+  }
+
+  return jql;
+}
+
 const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL || '';
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL || process.env.CONFLUENCE_BASE_URL || '';
 const ATLASSIAN_API_TOKEN = process.env.ATLASSIAN_API_TOKEN || '';
@@ -96,6 +202,23 @@ const tools = [
           description:
             'If true, saves children data to ~/.atlassian-buddy/wiki/{domain}/{parentSpaceId}/{parentPageId}/children.json (default false)',
           default: false,
+        },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name: 'get_confluence_page_tree',
+    description:
+      'Get hierarchical page tree starting from a page. Returns nested structure of pages and their children up to specified depth. Useful for understanding page organization or building navigation.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'Root page ID to start tree from' },
+        depth: {
+          type: 'number',
+          description: 'How many levels deep to fetch (default 2, max 5)',
+          default: 2,
         },
       },
       required: ['pageId'],
@@ -248,6 +371,93 @@ const tools = [
     },
   },
   {
+    name: 'build_jql_query',
+    description:
+      'Build a JQL query string from options. Use this to construct proper JQL queries for searching Jira issues. Returns a JQL string ready to use with search_jira_issues tool.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project: { type: 'string', description: 'Project key (e.g., TEAM, BANCSTAC)' },
+        issueTypes: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Issue types (e.g., Bug, Task, Story, Epic)',
+        },
+        statuses: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Statuses (e.g., "To Do", "In Progress", "Done")',
+        },
+        assignees: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Assignee usernames or display names',
+        },
+        reporters: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Reporter usernames or display names',
+        },
+        priorities: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Priorities (e.g., Highest, High, Medium, Low, Lowest)',
+        },
+        labels: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Labels to filter by',
+        },
+        components: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Components to filter by',
+        },
+        fixVersions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Fix versions to filter by',
+        },
+        createdAfter: {
+          type: 'string',
+          description: 'Created date after (YYYY-MM-DD or YYYY-MM-DD HH:mm format)',
+        },
+        createdBefore: {
+          type: 'string',
+          description: 'Created date before (YYYY-MM-DD or YYYY-MM-DD HH:mm format)',
+        },
+        updatedAfter: {
+          type: 'string',
+          description: 'Updated date after (YYYY-MM-DD or YYYY-MM-DD HH:mm format)',
+        },
+        updatedBefore: {
+          type: 'string',
+          description: 'Updated date before (YYYY-MM-DD or YYYY-MM-DD HH:mm format)',
+        },
+        textSearch: {
+          type: 'string',
+          description: 'Free-text search across summary, description, environment',
+        },
+        textFields: {
+          type: 'array',
+          items: { type: 'string', enum: ['summary', 'description', 'environment'] },
+          description: 'Which fields to search in (default: summary, description)',
+        },
+        orderBy: {
+          type: 'string',
+          enum: ['created', 'updated', 'priority', 'status', 'summary'],
+          description: 'Field to order by (default: created)',
+        },
+        orderDirection: {
+          type: 'string',
+          enum: ['ASC', 'DESC'],
+          description: 'Sort direction (default: DESC)',
+          default: 'DESC',
+        },
+      },
+    },
+  },
+  {
     name: 'download_confluence_attachment',
     description:
       'Download a Confluence attachment and save it to a local file path. Returns metadata including filename, MIME type, and the path where the file was saved.',
@@ -316,6 +526,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const space = await confluence.getSpace(args.spaceKey as string);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(space) }],
+        };
+      }
+
+      case 'get_confluence_page_tree': {
+        const depth = Math.min(Math.max((args.depth as number) || 2, 1), 5);
+        const tree = await confluence.getPageTree(args.pageId as string, depth);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(tree) }],
         };
       }
 
@@ -578,6 +796,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify(result),
             },
           ],
+        };
+      }
+
+      case 'build_jql_query': {
+        const jql = buildJqlQuery({
+          project: args.project as string,
+          issueTypes: args.issueTypes as string[] | undefined,
+          statuses: args.statuses as string[] | undefined,
+          assignees: args.assignees as string[] | undefined,
+          reporters: args.reporters as string[] | undefined,
+          priorities: args.priorities as string[] | undefined,
+          labels: args.labels as string[] | undefined,
+          components: args.components as string[] | undefined,
+          fixVersions: args.fixVersions as string[] | undefined,
+          createdAfter: args.createdAfter as string | undefined,
+          createdBefore: args.createdBefore as string | undefined,
+          updatedAfter: args.updatedAfter as string | undefined,
+          updatedBefore: args.updatedBefore as string | undefined,
+          textSearch: args.textSearch as string | undefined,
+          textFields: args.textFields as ('summary' | 'description' | 'environment')[] | undefined,
+          orderBy: args.orderBy as
+            | 'created'
+            | 'updated'
+            | 'priority'
+            | 'status'
+            | 'summary'
+            | undefined,
+          orderDirection: args.orderDirection as 'ASC' | 'DESC' | undefined,
+        });
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ jql }) }],
         };
       }
 
