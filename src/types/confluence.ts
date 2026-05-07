@@ -44,6 +44,18 @@ export interface ConfluenceAttachment {
   };
 }
 
+export interface ConfluencePageVersion {
+  id: string;
+  number: number;
+  message?: string;
+  author: {
+    type: string;
+    accountId: string;
+    displayName: string;
+  };
+  createdAt: string;
+}
+
 export interface PaginatedResponse<T> {
   results: T[];
   _links?: {

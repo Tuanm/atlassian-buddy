@@ -1,0 +1,78 @@
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
+
+const BASE_DIR = '.atlassian-buddy';
+
+export function extractDomain(baseUrl: string): string {
+  try {
+    const url = new URL(baseUrl);
+    return url.hostname;
+  } catch {
+    return 'unknown';
+  }
+}
+
+export function expandPath(path: string): string {
+  if (path.startsWith('~/') || path === '~') {
+    return path.replace('~', homedir());
+  }
+  return path;
+}
+
+function ensureDir(dirPath: string): void {
+  const expanded = expandPath(dirPath);
+  if (!existsSync(expanded)) {
+    mkdirSync(expanded, { recursive: true });
+  }
+}
+
+export function writeJson(filePath: string, data: unknown): void {
+  const expanded = expandPath(filePath);
+  ensureDir(expanded);
+  writeFileSync(expanded, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+export function writeText(filePath: string, content: string): void {
+  const expanded = expandPath(filePath);
+  ensureDir(expanded);
+  writeFileSync(expanded, content, 'utf-8');
+}
+
+export function writeBinary(filePath: string, data: Buffer): void {
+  const expanded = expandPath(filePath);
+  ensureDir(expanded);
+  writeFileSync(expanded, data);
+}
+
+export function buildConfluencePagePath(
+  domain: string,
+  spaceId: string,
+  pageId: string
+): string {
+  return join(BASE_DIR, 'wiki', domain, spaceId, pageId);
+}
+
+export function buildJiraIssuePath(
+  domain: string,
+  projectKey: string,
+  issueKey: string
+): string {
+  return join(BASE_DIR, 'jira', domain, projectKey, issueKey);
+}
+
+export function buildConfluencePageVersionsPath(
+  domain: string,
+  spaceId: string,
+  pageId: string
+): string {
+  return join(BASE_DIR, 'wiki', domain, spaceId, pageId, 'versions');
+}
+
+export function buildJiraIssueChangelogPath(
+  domain: string,
+  projectKey: string,
+  issueKey: string
+): string {
+  return join(BASE_DIR, 'jira', domain, projectKey, issueKey, 'changelog');
+}

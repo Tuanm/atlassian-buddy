@@ -3,6 +3,13 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ConfluenceClient } from './api/confluence';
 import { extractAttachmentMeta, extractTextFromADF, JiraClient } from './api/jira';
+import {
+  buildConfluencePagePath,
+  buildJiraIssuePath,
+  extractDomain,
+  writeJson,
+  writeText,
+} from './utils/storage';
 
 const CONFLUENCE_BASE_URL = process.env.CONFLUENCE_BASE_URL || '';
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL || process.env.CONFLUENCE_BASE_URL || '';
@@ -64,6 +71,11 @@ const tools = [
       type: 'object' as const,
       properties: {
         pageId: { type: 'string', description: 'Page ID (numeric or UUID string)' },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves page data to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/ (default false)',
+          default: false,
+        },
       },
       required: ['pageId'],
     },
@@ -78,6 +90,30 @@ const tools = [
         pageId: { type: 'string', description: 'Parent page ID' },
         limit: { type: 'number', description: 'Max results per page (default 25)' },
         cursor: { type: 'string', description: 'Pagination cursor from previous response' },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves children data to ~/.atlassian-buddy/wiki/{domain}/{parentSpaceId}/{parentPageId}/children.json (default false)',
+          default: false,
+        },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name: 'get_confluence_page_versions',
+    description:
+      'Get version history of a Confluence page. Returns all previous versions with author, timestamp, and optional version message. Use to track changes and restore previous content.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'Page ID' },
+        limit: { type: 'number', description: 'Max results per page (default 25)' },
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves versions to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/versions/ (default false)',
+          default: false,
+        },
       },
       required: ['pageId'],
     },
@@ -143,6 +179,11 @@ const tools = [
           type: 'boolean',
           description: 'Include comments in response (default true)',
         },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves issue data to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/ (default false)',
+          default: false,
+        },
       },
       required: ['issueKey'],
     },
@@ -155,6 +196,28 @@ const tools = [
       type: 'object' as const,
       properties: {
         issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves comments to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/comments.json (default false)',
+          default: false,
+        },
+      },
+      required: ['issueKey'],
+    },
+  },
+  {
+    name: 'get_jira_issue_changelog',
+    description:
+      'Get change history of a Jira issue. Returns all field changes (status, assignee, priority, etc.) with author and timestamp. Use to track issue timeline and understand what changed.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
+        localSave: {
+          type: 'boolean',
+          description: 'If true, saves changelog to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/changelog.json (default false)',
+          default: false,
+        },
       },
       required: ['issueKey'],
     },
@@ -244,19 +307,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'get_confluence_page': {
         const page = await confluence.getPage(args.pageId as string);
         const attachments = await confluence.getAttachments(page.id);
+        const result = {
+          id: page.id,
+          title: page.title,
+          body: page.body?.storage?.value || '',
+          parentId: page.parentId,
+          version: page.version?.number,
+          updated: page.version?.createdAt,
+          attachments,
+        };
+
+        if (args.localSave) {
+          const domain = extractDomain(CONFLUENCE_BASE_URL);
+          const basePath = buildConfluencePagePath(domain, page.spaceId, page.id);
+          writeJson(`${basePath}/metadata.json`, {
+            id: page.id,
+            title: page.title,
+            parentId: page.parentId,
+            version: page.version?.number,
+            updated: page.version?.createdAt,
+            spaceId: page.spaceId,
+          });
+          writeText(`${basePath}/body.html`, page.body?.storage?.value || '');
+          writeJson(`${basePath}/attachments.json`, attachments);
+          result.savedTo = basePath;
+        }
+
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({
-                id: page.id,
-                title: page.title,
-                body: page.body?.storage?.value || '',
-                parentId: page.parentId,
-                version: page.version?.number,
-                updated: page.version?.createdAt,
-                attachments,
-              }),
+              text: JSON.stringify(result),
             },
           ],
         };
@@ -267,6 +348,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           limit: args.limit as number,
           cursor: args.cursor as string,
         });
+
+        if (args.localSave) {
+          const parentPage = await confluence.getPage(args.pageId as string);
+          const domain = extractDomain(CONFLUENCE_BASE_URL);
+          const basePath = buildConfluencePagePath(domain, parentPage.spaceId, parentPage.id);
+          writeJson(`${basePath}/children.json`, result);
+          result.savedTo = `${basePath}/children.json`;
+        }
+
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        };
+      }
+
+      case 'get_confluence_page_versions': {
+        const result = await confluence.getPageVersions(args.pageId as string, {
+          limit: args.limit as number,
+          cursor: args.cursor as string,
+        });
+
+        if (args.localSave) {
+          const page = await confluence.getPage(args.pageId as string);
+          const domain = extractDomain(CONFLUENCE_BASE_URL);
+          const basePath = buildConfluencePagePath(domain, page.spaceId, page.id);
+          writeJson(`${basePath}/versions.json`, result);
+          result.savedTo = `${basePath}/versions.json`;
+        }
+
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
@@ -309,51 +418,111 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const description =
           issue.renderedFields?.description || extractTextFromADF(issue.fields.description);
 
+        const result = {
+          id: issue.id,
+          key: issue.key,
+          summary: issue.fields.summary,
+          description,
+          type: issue.fields.issuetype.name,
+          status: issue.fields.status.name,
+          priority: issue.fields.priority?.name,
+          assignee: issue.fields.assignee?.displayName,
+          reporter: issue.fields.reporter?.displayName,
+          created: issue.fields.created,
+          updated: issue.fields.updated,
+          resolved: issue.fields.resolutiondate,
+          labels: issue.fields.labels || [],
+          attachments,
+          comments: comments.map((c) => ({
+            id: c.id,
+            author: c.author.displayName,
+            body: c.renderedBody || extractTextFromADF(c.body),
+            created: c.created,
+          })),
+        };
+
+        if (args.localSave) {
+          const domain = extractDomain(JIRA_BASE_URL);
+          const projectKey = issue.fields.project.key;
+          const basePath = buildJiraIssuePath(domain, projectKey, issue.key);
+          writeJson(`${basePath}/metadata.json`, {
+            id: issue.id,
+            key: issue.key,
+            summary: issue.fields.summary,
+            type: issue.fields.issuetype.name,
+            status: issue.fields.status.name,
+            priority: issue.fields.priority?.name,
+            assignee: issue.fields.assignee?.displayName,
+            reporter: issue.fields.reporter?.displayName,
+            created: issue.fields.created,
+            updated: issue.fields.updated,
+            resolved: issue.fields.resolutiondate,
+            labels: issue.fields.labels || [],
+          });
+          writeText(`${basePath}/description.html`, description);
+          writeJson(`${basePath}/attachments.json`, attachments);
+          writeJson(`${basePath}/comments.json`, result.comments);
+          result.savedTo = basePath;
+        }
+
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({
-                id: issue.id,
-                key: issue.key,
-                summary: issue.fields.summary,
-                description,
-                type: issue.fields.issuetype.name,
-                status: issue.fields.status.name,
-                priority: issue.fields.priority?.name,
-                assignee: issue.fields.assignee?.displayName,
-                reporter: issue.fields.reporter?.displayName,
-                created: issue.fields.created,
-                updated: issue.fields.updated,
-                resolved: issue.fields.resolutiondate,
-                labels: issue.fields.labels || [],
-                attachments,
-                comments: comments.map((c) => ({
-                  id: c.id,
-                  author: c.author.displayName,
-                  body: c.renderedBody || extractTextFromADF(c.body),
-                  created: c.created,
-                })),
-              }),
+              text: JSON.stringify(result),
             },
           ],
         };
       }
 
       case 'get_jira_issue_comments': {
+        const issue = await jira.getIssue(args.issueKey as string);
         const comments = await jira.getIssueComments(args.issueKey as string);
+        const result = {
+          comments: comments.map((c) => ({
+            id: c.id,
+            author: c.author.displayName,
+            body: c.renderedBody || extractTextFromADF(c.body),
+            created: c.created,
+          })),
+        };
+
+        if (args.localSave) {
+          const domain = extractDomain(JIRA_BASE_URL);
+          const projectKey = issue.fields.project.key;
+          const basePath = buildJiraIssuePath(domain, projectKey, issue.key);
+          writeJson(`${basePath}/comments.json`, result);
+          result.savedTo = `${basePath}/comments.json`;
+        }
+
         return {
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({
-                comments: comments.map((c) => ({
-                  id: c.id,
-                  author: c.author.displayName,
-                  body: c.renderedBody || extractTextFromADF(c.body),
-                  created: c.created,
-                })),
-              }),
+              text: JSON.stringify(result),
+            },
+          ],
+        };
+      }
+
+      case 'get_jira_issue_changelog': {
+        const issue = await jira.getIssue(args.issueKey as string);
+        const changelog = await jira.getIssueChangelog(args.issueKey as string);
+        const result = { changelog };
+
+        if (args.localSave) {
+          const domain = extractDomain(JIRA_BASE_URL);
+          const projectKey = issue.fields.project.key;
+          const basePath = buildJiraIssuePath(domain, projectKey, issue.key);
+          writeJson(`${basePath}/changelog.json`, result);
+          result.savedTo = `${basePath}/changelog.json`;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result),
             },
           ],
         };

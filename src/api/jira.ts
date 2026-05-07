@@ -91,6 +91,13 @@ export class JiraClient extends AtlassianClient {
     return response.comments || [];
   }
 
+  async getIssueChangelog(issueKey: string): Promise<JiraChangelogHistory[]> {
+    const response = await this.fetch<{ values: JiraChangelogHistory[]; isLast: boolean }>(
+      `/rest/api/3/issue/${issueKey}/changelog`
+    );
+    return response.values || [];
+  }
+
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
     const attachment = await this.fetch<{ content: string; filename: string; mimeType: string }>(
       `/rest/api/3/attachment/${attachmentId}`

@@ -2,6 +2,7 @@ import { writeFileSync } from 'fs';
 import type {
   ConfluenceAttachment,
   ConfluencePage,
+  ConfluencePageVersion,
   ConfluenceSpace,
   PaginatedResponse,
 } from '../types/confluence';
@@ -104,6 +105,19 @@ export class ConfluenceClient extends AtlassianClient {
     } while (cursor);
 
     return attachments;
+  }
+
+  async getPageVersions(
+    pageId: string,
+    params?: { limit?: number; cursor?: string }
+  ): Promise<PaginatedResult<ConfluencePageVersion>> {
+    const limit = params?.limit || PAGE_LIMIT;
+    const path = params?.cursor
+      ? `/wiki/api/v2/pages/${pageId}/versions?limit=${limit}&cursor=${params.cursor}`
+      : `/wiki/api/v2/pages/${pageId}/versions?limit=${limit}`;
+
+    const response = await this.fetch<PaginatedResponse<ConfluencePageVersion>>(path);
+    return this.buildPaginatedResult(response.results, response._links?.next);
   }
 
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {

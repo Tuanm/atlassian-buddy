@@ -117,8 +117,9 @@ Restart OpenCode to load the MCP server.
 | `list_confluence_spaces` | `limit?`, `cursor?` | List all Confluence spaces |
 | `get_confluence_space` | `spaceKey` | Get Confluence space by key |
 | `search_confluence_pages` | `query`, `spaceKey?`, `limit?`, `cursor?` | Search pages by keyword |
-| `get_confluence_page` | `pageId` | Get page by ID with body and attachments |
-| `get_confluence_page_children` | `pageId`, `limit?`, `cursor?` | Get child pages |
+| `get_confluence_page` | `pageId`, `localSave?` | Get page with body, attachments; optionally save to disk |
+| `get_confluence_page_children` | `pageId`, `limit?`, `cursor?`, `localSave?` | Get child pages; optionally save to disk |
+| `get_confluence_page_versions` | `pageId`, `limit?`, `cursor?`, `localSave?` | Get page version history |
 | `download_confluence_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ### Jira
@@ -128,8 +129,9 @@ Restart OpenCode to load the MCP server.
 | `list_jira_projects` | `limit?`, `cursor?` | List all Jira projects |
 | `get_jira_project` | `projectKey` | Get Jira project by key |
 | `search_jira_issues` | `query?`, `jql?`, `limit?`, `cursor?` | Search issues using JQL or fuzzy search |
-| `get_jira_issue` | `issueKey`, `includeComments?` | Get issue with comments and attachments |
-| `get_jira_issue_comments` | `issueKey` | Get issue comments |
+| `get_jira_issue` | `issueKey`, `includeComments?`, `localSave?` | Get issue with comments/attachments; optionally save to disk |
+| `get_jira_issue_comments` | `issueKey`, `localSave?` | Get issue comments; optionally save to disk |
+| `get_jira_issue_changelog` | `issueKey`, `localSave?` | Get issue change history |
 | `download_jira_attachment` | `attachmentId`, `downloadPath` | Download attachment and save to local path |
 
 ## Usage Examples
