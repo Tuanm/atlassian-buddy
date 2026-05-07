@@ -114,8 +114,8 @@ Restart OpenCode to load the MCP server.
 
 | Tool | Arguments | Description |
 |------|-----------|-------------|
-| `list_spaces` | `limit?`, `cursor?` | List all spaces |
-| `get_space` | `spaceKey` | Get space by key |
+| `list_confluence_spaces` | `limit?`, `cursor?` | List all Confluence spaces |
+| `get_confluence_space` | `spaceKey` | Get Confluence space by key |
 | `search_pages` | `query`, `spaceKey?`, `limit?`, `cursor?` | Search pages by keyword |
 | `get_page` | `pageId` | Get page by ID with body and attachments |
 | `get_page_children` | `pageId`, `limit?`, `cursor?` | Get child pages |
@@ -125,8 +125,8 @@ Restart OpenCode to load the MCP server.
 
 | Tool | Arguments | Description |
 |------|-----------|-------------|
-| `list_projects` | `limit?`, `cursor?` | List all projects |
-| `get_project` | `projectKey` | Get project by key |
+| `list_jira_projects` | `limit?`, `cursor?` | List all Jira projects |
+| `get_jira_project` | `projectKey` | Get Jira project by key |
 | `search_issues` | `jql`, `limit?`, `cursor?` | Search issues using JQL |
 | `get_issue` | `issueKey`, `includeComments?` | Get issue with comments and attachments |
 | `get_issue_comments` | `issueKey` | Get issue comments |
@@ -136,7 +136,7 @@ Restart OpenCode to load the MCP server.
 
 ```javascript
 // List all spaces
-await tool("list_spaces", { limit: 25 })
+await tool("list_confluence_spaces", { limit: 25 })
 
 // Search pages in a specific space
 await tool("search_pages", {
@@ -152,7 +152,7 @@ await tool("get_page", { pageId: "123456789" })
 await tool("get_page_children", { pageId: "123456789" })
 
 // List projects
-await tool("list_projects")
+await tool("list_jira_projects")
 
 // Search issues with JQL
 await tool("search_issues", {

@@ -18,7 +18,7 @@ const jira = new JiraClient(JIRA_BASE_URL, ATLASSIAN_API_TOKEN);
 
 const tools = [
   {
-    name: 'list_spaces',
+    name: 'list_confluence_spaces',
     description:
       'List all Confluence spaces the user has access to. Use this to discover available spaces before searching for pages.',
     inputSchema: {
@@ -30,7 +30,7 @@ const tools = [
     },
   },
   {
-    name: 'get_space',
+    name: 'get_confluence_space',
     description:
       'Get details of a specific Confluence space by its key (e.g., "TEAM", "BANCSTAC"). Returns space metadata and permissions.',
     inputSchema: {
@@ -83,7 +83,7 @@ const tools = [
     },
   },
   {
-    name: 'list_projects',
+    name: 'list_jira_projects',
     description:
       'List all Jira projects the user has access to. Each project contains issues and has a unique key (e.g., "TEAM", "BANCSTAC").',
     inputSchema: {
@@ -95,7 +95,7 @@ const tools = [
     },
   },
   {
-    name: 'get_project',
+    name: 'get_jira_project',
     description:
       'Get details of a specific Jira project by its key. Returns project info, issue types, and workflow statuses.',
     inputSchema: {
@@ -210,7 +210,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'list_spaces': {
+      case 'list_confluence_spaces': {
         const result = await confluence.listSpaces({
           limit: args.limit as number,
           cursor: args.cursor as string,
@@ -220,7 +220,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_space': {
+      case 'get_confluence_space': {
         const space = await confluence.getSpace(args.spaceKey as string);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(space) }],
@@ -268,7 +268,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'list_projects': {
+      case 'list_jira_projects': {
         const result = await jira.listProjects({
           limit: args.limit as number,
           cursor: args.cursor as string,
@@ -278,7 +278,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'get_project': {
+      case 'get_jira_project': {
         const project = await jira.getProject(args.projectKey as string);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(project) }],
