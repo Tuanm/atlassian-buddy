@@ -136,6 +136,21 @@ export interface PaginationParams {
   limit?: number;
 }
 
+export interface JiraUser {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+  active?: boolean;
+  timeZone?: string;
+  accountType?: string;
+  avatarUrls?: {
+    '48x48': string;
+    '32x32': string;
+    '24x24': string;
+    '16x16': string;
+  };
+}
+
 export interface PaginatedResult<T> {
   results: T[];
   nextCursor?: string;

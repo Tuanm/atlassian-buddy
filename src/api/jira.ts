@@ -5,6 +5,7 @@ import type {
   JiraIssue,
   JiraPaginatedResponse,
   JiraProject,
+  JiraUser,
 } from '../types/jira';
 import type { AttachmentMeta, DownloadResult, PaginatedResult } from '../types/mcp';
 import { AtlassianClient } from './client';
@@ -109,6 +110,46 @@ export class JiraClient extends AtlassianClient {
     } while (cursor);
 
     return histories;
+  }
+
+  async getUsers(options?: {
+    query?: string;
+    username?: string;
+    email?: string;
+    accountId?: string;
+    accountType?: 'atlassian' | 'app' | 'enterprise';
+    includeActive?: boolean;
+    includeInactive?: boolean;
+    limit?: number;
+    cursor?: string;
+  }): Promise<PaginatedResult<JiraUser>> {
+    const limit = Math.min(options?.limit || MAX_RESULTS, MAX_RESULTS);
+    const startAt = options?.cursor ? parseInt(options.cursor, 10) : 0;
+
+    const params = new URLSearchParams({
+      startAt: startAt.toString(),
+      maxResults: limit.toString(),
+    });
+
+    if (options?.query) params.set('query', options.query);
+    if (options?.username) params.set('username', options.username);
+    if (options?.email) params.set('email', options.email);
+    if (options?.accountId) params.set('accountId', options.accountId);
+    if (options?.accountType) params.set('accountType', options.accountType);
+    if (options?.includeActive !== undefined)
+      params.set('includeActive', String(options.includeActive));
+    if (options?.includeInactive !== undefined)
+      params.set('includeInactive', String(options.includeInactive));
+
+    const users = await this.fetch<JiraUser[]>(`/rest/api/3/users/search?${params.toString()}`);
+
+    const nextCursor = users.length === limit ? String(startAt + limit) : undefined;
+
+    return {
+      results: users,
+      nextCursor,
+      hasMore: !!nextCursor,
+    };
   }
 
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {

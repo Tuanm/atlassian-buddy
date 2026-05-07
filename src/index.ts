@@ -458,6 +458,56 @@ const tools = [
     },
   },
   {
+    name: 'list_jira_users',
+    description:
+      'Search and list Jira users. Use for finding user accounts by display name, username, or email. Returns user details including account ID, display name, email, and avatar URLs. Useful for assigning issues or looking up user information.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Fuzzy search by display name or username',
+        },
+        username: {
+          type: 'string',
+          description: 'Exact username match',
+        },
+        email: {
+          type: 'string',
+          description: 'Exact email match',
+        },
+        accountId: {
+          type: 'string',
+          description: 'Exact account ID match',
+        },
+        accountType: {
+          type: 'string',
+          enum: ['atlassian', 'app', 'enterprise'],
+          description: 'Filter by account type',
+        },
+        includeActive: {
+          type: 'boolean',
+          description: 'Include active users (default true)',
+          default: true,
+        },
+        includeInactive: {
+          type: 'boolean',
+          description: 'Include inactive users (default false)',
+          default: false,
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 100, max 1000)',
+          default: 100,
+        },
+        cursor: {
+          type: 'string',
+          description: 'Pagination cursor from previous response',
+        },
+      },
+    },
+  },
+  {
     name: 'download_confluence_attachment',
     description:
       'Download a Confluence attachment and save it to a local file path. Returns metadata including filename, MIME type, and the path where the file was saved.',
@@ -827,6 +877,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify({ jql }) }],
+        };
+      }
+
+      case 'list_jira_users': {
+        const result = await jira.getUsers({
+          query: args.query as string | undefined,
+          username: args.username as string | undefined,
+          email: args.email as string | undefined,
+          accountId: args.accountId as string | undefined,
+          accountType: args.accountType as 'atlassian' | 'app' | 'enterprise' | undefined,
+          includeActive: args.includeActive as boolean | undefined,
+          includeInactive: args.includeInactive as boolean | undefined,
+          limit: args.limit as number | undefined,
+          cursor: args.cursor as string | undefined,
+        });
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
       }
 
