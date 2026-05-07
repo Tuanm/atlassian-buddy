@@ -10,7 +10,7 @@ export abstract class AtlassianClient {
   protected authHeader: string;
 
   constructor(baseUrl: string, authToken: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.baseUrl = baseUrl.replace(/\/$/, '').replace(/\/wiki$/, '');
     this.authHeader = `Basic ${Buffer.from(authToken).toString('base64')}`;
   }
 
