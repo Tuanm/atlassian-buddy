@@ -122,6 +122,25 @@ const tools = [
     },
   },
   {
+    name: 'get_confluence_page_version',
+    description:
+      'Get a specific version of a Confluence page including its content body at that version. Use to view or restore previous content.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'Page ID' },
+        versionNumber: { type: 'number', description: 'Version number to retrieve' },
+        localSave: {
+          type: 'boolean',
+          description:
+            'If true, saves version data to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/versions/{versionNumber}.json (default false)',
+          default: false,
+        },
+      },
+      required: ['pageId', 'versionNumber'],
+    },
+  },
+  {
     name: 'list_jira_projects',
     description:
       'List all Jira projects the user has access to. Each project contains issues and has a unique key (e.g., "TEAM", "BANCSTAC").',
@@ -369,17 +388,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_confluence_page_versions': {
-        const result = await confluence.getPageVersions(args.pageId as string, {
-          limit: args.limit as number,
-          cursor: args.cursor as string,
-        });
+        let result: Record<string, unknown>;
+
+        if (args.localSave) {
+          const allVersions = await confluence.getAllPageVersions(args.pageId as string);
+          const page = await confluence.getPage(args.pageId as string);
+          const domain = extractDomain(CONFLUENCE_BASE_URL);
+          const basePath = buildConfluencePagePath(domain, page.spaceId, page.id);
+          result = { results: allVersions, hasMore: false };
+          writeJson(`${basePath}/versions.json`, result);
+          result.savedTo = `${basePath}/versions.json`;
+        } else {
+          result = (await confluence.getPageVersions(args.pageId as string, {
+            limit: args.limit as number,
+            cursor: args.cursor as string,
+          })) as Record<string, unknown>;
+        }
+
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+        };
+      }
+
+      case 'get_confluence_page_version': {
+        const versionDetail = await confluence.getPageVersion(
+          args.pageId as string,
+          args.versionNumber as number
+        );
+        let result = versionDetail;
 
         if (args.localSave) {
           const page = await confluence.getPage(args.pageId as string);
           const domain = extractDomain(CONFLUENCE_BASE_URL);
           const basePath = buildConfluencePagePath(domain, page.spaceId, page.id);
-          writeJson(`${basePath}/versions.json`, result);
-          result.savedTo = `${basePath}/versions.json`;
+          writeJson(`${basePath}/versions/${args.versionNumber}.json`, result);
+          result = { ...result, savedTo: `${basePath}/versions/${args.versionNumber}.json` };
         }
 
         return {

@@ -56,6 +56,15 @@ export interface ConfluencePageVersion {
   createdAt: string;
 }
 
+export interface ConfluencePageVersionDetail extends ConfluencePageVersion {
+  body?: {
+    storage: {
+      value: string;
+      representation: 'storage';
+    };
+  };
+}
+
 export interface PaginatedResponse<T> {
   results: T[];
   _links?: {

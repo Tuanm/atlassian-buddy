@@ -3,6 +3,7 @@ import type {
   ConfluenceAttachment,
   ConfluencePage,
   ConfluencePageVersion,
+  ConfluencePageVersionDetail,
   ConfluenceSpace,
   PaginatedResponse,
 } from '../types/confluence';
@@ -118,6 +119,32 @@ export class ConfluenceClient extends AtlassianClient {
 
     const response = await this.fetch<PaginatedResponse<ConfluencePageVersion>>(path);
     return this.buildPaginatedResult(response.results, response._links?.next);
+  }
+
+  async getAllPageVersions(pageId: string): Promise<ConfluencePageVersion[]> {
+    const versions: ConfluencePageVersion[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const path = cursor
+        ? `/wiki/api/v2/pages/${pageId}/versions?limit=${PAGE_LIMIT}&cursor=${cursor}`
+        : `/wiki/api/v2/pages/${pageId}/versions?limit=${PAGE_LIMIT}`;
+
+      const response = await this.fetch<PaginatedResponse<ConfluencePageVersion>>(path);
+      versions.push(...response.results);
+      cursor = this.extractCursor(response._links?.next);
+    } while (cursor);
+
+    return versions;
+  }
+
+  async getPageVersion(
+    pageId: string,
+    versionNumber: number
+  ): Promise<ConfluencePageVersionDetail> {
+    return this.fetch<ConfluencePageVersionDetail>(
+      `/wiki/api/v2/pages/${pageId}/versions/${versionNumber}?body-format=storage`
+    );
   }
 
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
