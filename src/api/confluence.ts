@@ -125,7 +125,13 @@ export class ConfluenceClient extends AtlassianClient {
       `/wiki/api/v2/attachments/${attachmentId}/download`
     );
     const filename = this.extractFilename(contentDisposition) || 'unknown';
-    writeFileSync(downloadPath, data);
+    try {
+      writeFileSync(downloadPath, data);
+    } catch (err) {
+      throw new Error(
+        `Failed to save attachment to ${downloadPath}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
     return { filename, mimeType: contentType, path: downloadPath };
   }
 

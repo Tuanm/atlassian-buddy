@@ -30,19 +30,37 @@ function ensureDir(dirPath: string): void {
 export function writeJson(filePath: string, data: unknown): void {
   const expanded = expandPath(filePath);
   ensureDir(expanded);
-  writeFileSync(expanded, JSON.stringify(data, null, 2), 'utf-8');
+  try {
+    writeFileSync(expanded, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    throw new Error(
+      `Failed to write JSON to ${expanded}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
 export function writeText(filePath: string, content: string): void {
   const expanded = expandPath(filePath);
   ensureDir(expanded);
-  writeFileSync(expanded, content, 'utf-8');
+  try {
+    writeFileSync(expanded, content, 'utf-8');
+  } catch (err) {
+    throw new Error(
+      `Failed to write text to ${expanded}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
 export function writeBinary(filePath: string, data: Buffer): void {
   const expanded = expandPath(filePath);
   ensureDir(expanded);
-  writeFileSync(expanded, data);
+  try {
+    writeFileSync(expanded, data);
+  } catch (err) {
+    throw new Error(
+      `Failed to write binary to ${expanded}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
 export function buildConfluencePagePath(domain: string, spaceId: string, pageId: string): string {
@@ -51,20 +69,4 @@ export function buildConfluencePagePath(domain: string, spaceId: string, pageId:
 
 export function buildJiraIssuePath(domain: string, projectKey: string, issueKey: string): string {
   return join(BASE_DIR, 'jira', domain, projectKey, issueKey);
-}
-
-export function buildConfluencePageVersionsPath(
-  domain: string,
-  spaceId: string,
-  pageId: string
-): string {
-  return join(BASE_DIR, 'wiki', domain, spaceId, pageId, 'versions');
-}
-
-export function buildJiraIssueChangelogPath(
-  domain: string,
-  projectKey: string,
-  issueKey: string
-): string {
-  return join(BASE_DIR, 'jira', domain, projectKey, issueKey, 'changelog');
 }

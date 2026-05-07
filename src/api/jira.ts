@@ -92,10 +92,23 @@ export class JiraClient extends AtlassianClient {
   }
 
   async getIssueChangelog(issueKey: string): Promise<JiraChangelogHistory[]> {
-    const response = await this.fetch<{ values: JiraChangelogHistory[]; isLast: boolean }>(
-      `/rest/api/3/issue/${issueKey}/changelog`
-    );
-    return response.values || [];
+    const histories: JiraChangelogHistory[] = [];
+    let cursor: string | undefined;
+
+    do {
+      let path = `/rest/api/3/issue/${issueKey}/changelog`;
+      if (cursor) path += `?cursor=${encodeURIComponent(cursor)}`;
+
+      const response = await this.fetch<{
+        values: JiraChangelogHistory[];
+        isLast: boolean;
+        nextPage?: string;
+      }>(path);
+      histories.push(...(response.values || []));
+      cursor = response.nextPage;
+    } while (cursor);
+
+    return histories;
   }
 
   async downloadAttachment(attachmentId: string, downloadPath: string): Promise<DownloadResult> {
@@ -104,7 +117,13 @@ export class JiraClient extends AtlassianClient {
     );
     const { data, contentType, contentDisposition } = await this.fetchBinary(attachment.content);
     const filename = this.extractFilename(contentDisposition) || attachment.filename;
-    writeFileSync(downloadPath, data);
+    try {
+      writeFileSync(downloadPath, data);
+    } catch (err) {
+      throw new Error(
+        `Failed to save attachment to ${downloadPath}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
     return { filename, mimeType: contentType, path: downloadPath };
   }
 
