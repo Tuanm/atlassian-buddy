@@ -1,6 +1,6 @@
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 const BASE_DIR = '.atlassian-buddy';
 
@@ -45,19 +45,11 @@ export function writeBinary(filePath: string, data: Buffer): void {
   writeFileSync(expanded, data);
 }
 
-export function buildConfluencePagePath(
-  domain: string,
-  spaceId: string,
-  pageId: string
-): string {
+export function buildConfluencePagePath(domain: string, spaceId: string, pageId: string): string {
   return join(BASE_DIR, 'wiki', domain, spaceId, pageId);
 }
 
-export function buildJiraIssuePath(
-  domain: string,
-  projectKey: string,
-  issueKey: string
-): string {
+export function buildJiraIssuePath(domain: string, projectKey: string, issueKey: string): string {
   return join(BASE_DIR, 'jira', domain, projectKey, issueKey);
 }
 

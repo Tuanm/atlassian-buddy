@@ -73,7 +73,8 @@ const tools = [
         pageId: { type: 'string', description: 'Page ID (numeric or UUID string)' },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves page data to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/ (default false)',
+          description:
+            'If true, saves page data to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/ (default false)',
           default: false,
         },
       },
@@ -92,7 +93,8 @@ const tools = [
         cursor: { type: 'string', description: 'Pagination cursor from previous response' },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves children data to ~/.atlassian-buddy/wiki/{domain}/{parentSpaceId}/{parentPageId}/children.json (default false)',
+          description:
+            'If true, saves children data to ~/.atlassian-buddy/wiki/{domain}/{parentSpaceId}/{parentPageId}/children.json (default false)',
           default: false,
         },
       },
@@ -111,7 +113,8 @@ const tools = [
         cursor: { type: 'string', description: 'Pagination cursor from previous response' },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves versions to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/versions/ (default false)',
+          description:
+            'If true, saves versions to ~/.atlassian-buddy/wiki/{domain}/{spaceId}/{pageId}/versions/ (default false)',
           default: false,
         },
       },
@@ -181,7 +184,8 @@ const tools = [
         },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves issue data to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/ (default false)',
+          description:
+            'If true, saves issue data to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/ (default false)',
           default: false,
         },
       },
@@ -198,7 +202,8 @@ const tools = [
         issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves comments to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/comments.json (default false)',
+          description:
+            'If true, saves comments to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/comments.json (default false)',
           default: false,
         },
       },
@@ -215,7 +220,8 @@ const tools = [
         issueKey: { type: 'string', description: 'Issue key (e.g., BANCSTAC-123)' },
         localSave: {
           type: 'boolean',
-          description: 'If true, saves changelog to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/changelog.json (default false)',
+          description:
+            'If true, saves changelog to ~/.atlassian-buddy/jira/{domain}/{projectKey}/{issueKey}/changelog.json (default false)',
           default: false,
         },
       },
@@ -399,10 +405,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'search_jira_issues': {
-        const result = await jira.searchIssues(args.query as string | undefined, args.jql as string | undefined, {
-          limit: args.limit as number,
-          cursor: args.cursor as string,
-        });
+        const result = await jira.searchIssues(
+          args.query as string | undefined,
+          args.jql as string | undefined,
+          {
+            limit: args.limit as number,
+            cursor: args.cursor as string,
+          }
+        );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result) }],
         };
