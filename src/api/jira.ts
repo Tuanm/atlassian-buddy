@@ -34,14 +34,28 @@ export class JiraClient extends AtlassianClient {
   }
 
   async searchIssues(
-    jql: string,
+    query?: string,
+    jql?: string,
     params?: { limit?: number; cursor?: string }
   ): Promise<PaginatedResult<JiraIssue>> {
     const limit = params?.limit || MAX_RESULTS;
     const startAt = params?.cursor ? parseInt(params.cursor, 10) : 0;
 
+    let finalJql = jql;
+    if (query) {
+      const escapedQuery = query.replace(/"/g, '\\"');
+      finalJql = `(summary ~ "${escapedQuery}" OR description ~ "${escapedQuery}" OR environment ~ "${escapedQuery}")`;
+      if (jql) {
+        finalJql = `${finalJql} AND (${jql})`;
+      }
+    }
+
+    if (!finalJql) {
+      finalJql = 'ORDER BY created DESC';
+    }
+
     const searchParams = new URLSearchParams({
-      jql,
+      jql: finalJql,
       startAt: startAt.toString(),
       maxResults: limit.toString(),
       expand: 'renderedFields,changelog',

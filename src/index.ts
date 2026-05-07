@@ -109,14 +109,19 @@ const tools = [
   {
     name: 'search_issues',
     description:
-      'Search Jira issues using JQL (Jira Query Language). Supports filtering by project, status, assignee, labels, dates, and full-text search.',
+      'Search Jira issues using JQL or free-text fuzzy search. Use `query` for simple fuzzy text search across summary, description, and environment fields. Use `jql` for advanced filtering with full JQL syntax.',
     inputSchema: {
       type: 'object' as const,
       properties: {
+        query: {
+          type: 'string',
+          description:
+            'Free-text fuzzy search across issue summary, description, and environment (e.g., "login bug", "performance issue")',
+        },
         jql: {
           type: 'string',
           description:
-            'JQL query (e.g., project=TEAM AND status="In Progress" ORDER BY created DESC)',
+            'JQL query for advanced filtering (e.g., project=TEAM AND status="In Progress" ORDER BY created DESC). Ignored if `query` is provided.',
         },
         limit: { type: 'number', description: 'Max results (default 100)' },
         cursor: {
@@ -124,7 +129,6 @@ const tools = [
           description: 'Pagination cursor (startAt number) from previous response',
         },
       },
-      required: ['jql'],
     },
   },
   {
@@ -286,7 +290,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'search_issues': {
-        const result = await jira.searchIssues(args.jql as string, {
+        const result = await jira.searchIssues(args.query as string | undefined, args.jql as string | undefined, {
           limit: args.limit as number,
           cursor: args.cursor as string,
         });
