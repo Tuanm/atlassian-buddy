@@ -4,7 +4,7 @@ MCP server for Atlassian Confluence and Jira.
 
 ## Features
 
-- **13 MCP tools** for Confluence and Jira operations
+- **16 MCP tools** for Confluence and Jira operations
 - Cursor-based pagination for large datasets
 - Rate limiting with exponential backoff
 - ADF (Atlassian Document Format) to text extraction
@@ -131,7 +131,7 @@ Restart OpenCode to load the MCP server.
 | `list_jira_projects` | `limit?`, `cursor?` | List all Jira projects |
 | `get_jira_project` | `projectKey` | Get Jira project by key |
 | `search_jira_issues` | `query?`, `jql?`, `limit?`, `cursor?` | Search issues using JQL or fuzzy search |
-| `build_jql_query` | Various filters | Build JQL query string from options |
+| `build_jql_query` | `project?`, `issueTypes?`, `statuses?`, `assignees?`, `reporters?`, `priorities?`, `labels?`, `components?`, `fixVersions?`, `createdAfter?`, `createdBefore?`, `updatedAfter?`, `updatedBefore?`, `textSearch?`, `textFields?`, `orderBy?`, `orderDirection?` | Build JQL query string from options |
 | `list_jira_users` | `query?`, `username?`, `email?`, `accountId?`, `accountType?`, `includeActive?`, `includeInactive?`, `limit?`, `cursor?` | Search and list Jira users with fuzzy search and filters |
 | `get_jira_issue` | `issueKey`, `includeComments?`, `localSave?` | Get issue with comments/attachments; optionally save to disk |
 | `get_jira_issue_comments` | `issueKey`, `localSave?` | Get issue comments; optionally save to disk |
